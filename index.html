@@ -1,0 +1,168 @@
+
+<html>
+ <head>  
+ </head> 
+ <body> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>Mphale Salary Calculator</title> 
+  <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 10px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .input-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        label {
+            font-weight: bold;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #4F81BD;
+            color: #fff;
+            font-weight: bold;
+        }
+        td:first-child {
+            text-align: left;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr.total {
+            font-weight: bold;
+            background-color: #e6e6e6;
+        }
+        @media (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style> 
+  <h1>Mphale Salary Calculator</h1> 
+  <div class="input-container"> 
+   <label for="name">Employee Name:</label> 
+   <input type="text" id="name" value="Employee Name" oninput="calculateSalary()"> 
+   <label for="grossIncome">Gross Income (R):</label> 
+   <input type="number" id="grossIncome" value="25000" min="0" step="0.01" oninput="calculateSalary()"> 
+  </div> 
+  <table id="salaryTable"> 
+   <thead> 
+    <tr> 
+     <th>Employee Name</th> 
+     <th>Gross Income (R)</th> 
+     <th>PAYE (R)</th> 
+     <th>UIF Employee (R)</th> 
+     <th>SDL (R)</th> 
+     <th>VAT (R)</th> 
+     <th>Net Salary (R)</th> 
+    </tr> 
+   </thead> 
+   <tbody id="tableBody"> 
+    <!-- Data inserted by JS --> 
+   </tbody> 
+   <tfoot id="tableFoot"> 
+    <!-- Total row inserted by JS --> 
+   </tfoot> 
+  </table> 
+  <script>
+        const UIF_RATE = 0.01;
+        const UIF_CEILING = 14872;
+        const SDL_RATE = 0.01;
+        const VAT_RATE = 0.15;
+        const SDL_THRESHOLD = 500000 / 12;
+        const PRIMARY_REBATE = 18513;
+
+        const taxBrackets = [
+            { max: 226000, rate: 0.18, base: 0 },
+            { max: 353100, rate: 0.26, base: 40680 },
+            { max: 494100, rate: 0.31, base: 73764 },
+            { max: 645300, rate: 0.36, base: 117456 },
+            { max: 861900, rate: 0.39, base: 173964 },
+            { max: 1817000, rate: 0.41, base: 255987 },
+            { max: Infinity, rate: 0.45, base: 647355 }
+        ];
+
+        function calculatePAYE(annualIncome) {
+            let tax = 0;
+            for (const bracket of taxBrackets) {
+                if (annualIncome <= bracket.max) {
+                    const prevMax = taxBrackets[taxBrackets.indexOf(bracket) - 1]?.max || 0;
+                    tax = bracket.base + bracket.rate * (annualIncome - prevMax);
+                    break;
+                }
+            }
+            return Math.max(0, (tax - PRIMARY_REBATE) / 12);
+        }
+
+        function calculateSalary() {
+            const name = document.getElementById('name').value || 'Unnamed';
+            const grossIncome = parseFloat(document.getElementById('grossIncome').value) || 0;
+
+            const annualIncome = grossIncome * 12;
+            const paye = calculatePAYE(annualIncome);
+            const uifEmployee = Math.min(grossIncome * UIF_RATE, UIF_CEILING * UIF_RATE);
+            const sdl = annualIncome > SDL_THRESHOLD * 12 ? grossIncome * SDL_RATE : 0;
+            const vat = 0;
+            const netSalary = grossIncome - paye - uifEmployee;
+
+            const formatCurrency = (value) => `R ${value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+
+            document.getElementById('tableBody').innerHTML = `
+                <tr>
+                    <td>${name}</td>
+                    <td>${formatCurrency(grossIncome)}</td>
+                    <td>${formatCurrency(paye)}</td>
+                    <td>${formatCurrency(uifEmployee)}</td>
+                    <td>${formatCurrency(sdl)}</td>
+                    <td>${formatCurrency(vat)}</td>
+                    <td>${formatCurrency(netSalary)}</td>
+                </tr>
+            `;
+
+            document.getElementById('tableFoot').innerHTML = `
+                <tr class="total">
+                    <td>Total</td>
+                    <td>${formatCurrency(grossIncome)}</td>
+                    <td>${formatCurrency(paye)}</td>
+                    <td>${formatCurrency(uifEmployee)}</td>
+                    <td>${formatCurrency(sdl)}</td>
+                    <td>${formatCurrency(vat)}</td>
+                    <td>${formatCurrency(netSalary)}</td>
+                </tr>
+            `;
+        }
+
+        calculateSalary();
+    </script>   
+ </body>
+</html>
